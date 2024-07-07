@@ -5,13 +5,21 @@ import YouTubePlayer from '../YoutubePlayer';
 import './TrailerModal.css';
 
 const TrailerModal = () => {
-  const { selectedTrailerKey } = useSelector((state) => state.selectedTrailer);
+  const { selectedTrailerKey, fetchStatus } = useSelector(
+    (state) => state.selectedTrailer,
+  );
   const { clearSelectedTrailerKey } = selectedTrailerSlice.actions;
   const dispatch = useDispatch();
 
   const onClose = () => dispatch(clearSelectedTrailerKey());
 
-  if (!selectedTrailerKey) return <></>;
+  if (!fetchStatus && !selectedTrailerKey) return <></>;
+
+  const bodyByFetchStatus = {
+    error: <p>Error fetching the trailer.</p>,
+    loading: <p>Loading...</p>,
+    success: <YouTubePlayer videoKey={selectedTrailerKey} />,
+  };
 
   return (
     <div className="modal-background" onClick={onClose}>
@@ -19,7 +27,7 @@ const TrailerModal = () => {
         <button className="modal-close" onClick={onClose}>
           X
         </button>
-        <YouTubePlayer videoKey={selectedTrailerKey} />
+        {bodyByFetchStatus[fetchStatus]}
       </div>
     </div>
   );

@@ -4,6 +4,11 @@ export const fetchMovies = createAsyncThunk(
   'fetch-movies',
   async ({ apiUrl, fetchType, searchedTerm }) => {
     const response = await fetch(apiUrl);
+
+    if (!response.ok) {
+      throw new Error('Error fetching movies');
+    }
+
     const movies = await response.json();
     return {
       movies,

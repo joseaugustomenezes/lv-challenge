@@ -1,9 +1,8 @@
 import { useDispatch, useSelector } from 'react-redux';
 import starredSlice from '../data/starredSlice';
 import watchLaterSlice from '../data/watchLaterSlice';
-import selectedTrailerSlice from '../data/selectedTrailerSlice';
+import { fetchTrailer } from '../data/selectedTrailerSlice';
 import placeholder from '../assets/not-found-500X750.jpeg';
-import { ENDPOINT_MOVIE } from '../constants';
 import { forwardRef } from 'react';
 
 const Movie = forwardRef(({ movie, className }, ref) => {
@@ -12,25 +11,7 @@ const Movie = forwardRef(({ movie, className }, ref) => {
   const dispatch = useDispatch();
 
   const { starMovie, unstarMovie } = starredSlice.actions;
-  const { setSelectedTrailerKey } = selectedTrailerSlice.actions;
   const { addToWatchLater, removeFromWatchLater } = watchLaterSlice.actions;
-
-  const viewTrailer = async () => {
-    const trailerKey = await getTrailerKey(movie.id);
-    dispatch(setSelectedTrailerKey(trailerKey));
-  };
-
-  const getTrailerKey = async (id) => {
-    const response = await fetch(ENDPOINT_MOVIE.replace('{id}', id));
-    const videoData = await response.json();
-
-    const videoResults = videoData.videos?.results || [];
-    const trailer = videoResults.find((vid) => vid.type === 'Trailer');
-    if (trailer) {
-      return trailer.key;
-    }
-    return videoResults[0]?.key;
-  };
 
   return (
     <div
@@ -98,7 +79,7 @@ const Movie = forwardRef(({ movie, className }, ref) => {
             <button
               type="button"
               className="btn btn-dark"
-              onClick={viewTrailer}
+              onClick={() => dispatch(fetchTrailer(movie.id))}
             >
               View Trailer
             </button>
