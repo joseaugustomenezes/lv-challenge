@@ -1,22 +1,29 @@
-import { createSlice } from "@reduxjs/toolkit"
+import { createSlice } from '@reduxjs/toolkit';
 
 const starredSlice = createSlice({
-    name: 'starred',
-    initialState: {
-        starredMovies: []
+  name: 'starred',
+  initialState: {
+    starredMovies: {},
+    starredMovieIds: [],
+  },
+  reducers: {
+    starMovie: (state, action) => {
+      if (!state.starredMovies[action.payload.id]) {
+        state.starredMovies[action.payload.id] = action.payload;
+        state.starredMovieIds.push(action.payload.id);
+      }
     },
-    reducers: {
-        starMovie: (state, action) => {
-            state.starredMovies = [action.payload, ...state.starredMovies]
-        },
-        unstarMovie: (state, action) => {
-            const indexOfId = state.starredMovies.findIndex(key => key.id === action.payload.id)
-            state.starredMovies.splice(indexOfId, 1)
-        },
-        clearAllStarred: (state) => {
-            state.starredMovies = []
-        },
+    unstarMovie: (state, action) => {
+      delete state.starredMovies[action.payload.id];
+      state.starredMovieIds = state.starredMovieIds.filter(
+        (id) => id !== action.payload.id,
+      );
     },
-})
+    clearAllStarred: (state) => {
+      state.starredMovies = {};
+      state.starredMovieIds = [];
+    },
+  },
+});
 
-export default starredSlice
+export default starredSlice;

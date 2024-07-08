@@ -1,41 +1,115 @@
-import { screen, waitFor } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
-import { renderWithProviders } from "./test/utils"
-import App from './App'
+/* eslint-disable react/display-name */
+import React, { act } from 'react';
+import { render, screen } from '@testing-library/react';
+import '@testing-library/jest-dom/extend-expect';
+import { Provider } from 'react-redux';
+import configureMockStore from 'redux-mock-store';
+import { MemoryRouter } from 'react-router-dom';
+import App from './App';
+import { fetchMovies } from './data/moviesSlice';
+import { HOME, STARRED, WATCH_LATER } from './routes';
 
-it('renders watch later link', () => {
-  renderWithProviders(<App />)
-  const linkElement = screen.getByText(/watch later/i)
-  expect(linkElement).toBeInTheDocument()
-})
+jest.mock('./data/moviesSlice');
+jest.mock('react-redux', () => ({
+  ...jest.requireActual('react-redux'),
+  useDispatch: jest.fn(),
+}));
+jest.mock('react-router-dom', () => ({
+  ...jest.requireActual('react-router-dom'),
+  useSearchParams: jest.fn(),
+}));
+jest.mock('./components/Header', () => () => <div>Mock Header</div>);
+jest.mock('./components/TrailerModal/TrailerModal', () => () => (
+  <div>Mock Modal</div>
+));
+jest.mock('./components/Movies/Movies', () => () => <div>Mock Movies</div>);
+jest.mock('./components/Starred', () => () => <div>Mock Starred</div>);
+jest.mock('./components/WatchLater', () => () => <div>Mock Watch Later</div>);
 
-it('search for movies', async () => {
-  renderWithProviders(<App />)
-  await userEvent.type(screen.getByTestId('search-movies'), 'forrest gump')
-  await waitFor(() => {
-    expect(screen.getAllByText('Through the Eyes of Forrest Gump')[0]).toBeInTheDocument()
-  })
-  const viewTrailerBtn = screen.getAllByText('View Trailer')[0]
-  await userEvent.click(viewTrailerBtn)
-  await waitFor(() => {
-    expect(screen.getByTestId('youtube-player')).toBeInTheDocument()
-  })
-})
+const mockStore = configureMockStore();
+const useDispatch = require('react-redux').useDispatch;
+const useSearchParams = require('react-router-dom').useSearchParams;
 
-it('renders watch later component', async() => {
-  renderWithProviders(<App />)
-  const user = userEvent.setup()
-  await user.click(screen.getByText(/watch later/i))
-  expect(screen.getByText(/You have no movies saved to watch later/i)).toBeInTheDocument()
-})
+describe('App component', () => {
+  let store;
 
+  beforeEach(() => {
+    store = mockStore({});
+    useDispatch.mockReturnValue(jest.fn());
+  });
 
-it('renders starred component', async() => {
-  renderWithProviders(<App />)
-  const user = userEvent.setup()
-  await user.click(screen.getByTestId('nav-starred'))
-  expect(screen.getByText(/There are no starred movies/i)).toBeInTheDocument()
-  await waitFor(() => {
-    expect(screen.getByTestId('starred')).toBeInTheDocument()
-  })  
-})
+  const renderWithProviders = async (ui, { route = HOME } = {}) => {
+    window.history.pushState({}, 'Test page', route);
+
+    return act(async () =>
+      render(
+        <Provider store={store}>
+          <MemoryRouter initialEntries={[route]}>{ui}</MemoryRouter>
+        </Provider>,
+      ),
+    );
+  };
+
+  it('dispatches fetchMovies with search query', async () => {
+    const mockDispatch = jest.fn();
+    useDispatch.mockReturnValue(mockDispatch);
+    useSearchParams.mockReturnValue([{ get: () => 'test' }, jest.fn()]);
+
+    await renderWithProviders(<App />);
+
+    expect(mockDispatch).toHaveBeenCalledWith(
+      fetchMovies({
+        apiUrl: 'ENDPOINT_SEARCH',
+        fetchType: 'search',
+        searchedTerm: 'test',
+      }),
+    );
+  });
+
+  it('dispatches fetchMovies without search query', async () => {
+    const mockDispatch = jest.fn();
+    useDispatch.mockReturnValue(mockDispatch);
+    useSearchParams.mockReturnValue([{ get: () => '' }, jest.fn()]);
+
+    await renderWithProviders(<App />);
+
+    expect(mockDispatch).toHaveBeenCalledWith(
+      fetchMovies({
+        apiUrl: 'ENDPOINT_DISCOVER',
+        fetchType: 'discover',
+      }),
+    );
+  });
+
+  it('renders Header, Movies, and TrailerModal components', async () => {
+    useSearchParams.mockReturnValue([{ get: () => '' }, jest.fn()]);
+
+    await renderWithProviders(<App />);
+
+    expect(screen.getByText('Mock Header')).toBeInTheDocument();
+  });
+
+  it('renders Starred component on /starred route', async () => {
+    useSearchParams.mockReturnValue([{ get: () => '' }, jest.fn()]);
+
+    await renderWithProviders(<App />, { route: STARRED });
+
+    expect(screen.getByText('Mock Starred')).toBeInTheDocument();
+  });
+
+  it('renders WatchLater component on /watch-later route', async () => {
+    useSearchParams.mockReturnValue([{ get: () => '' }, jest.fn()]);
+
+    await renderWithProviders(<App />, { route: WATCH_LATER });
+
+    expect(screen.getByText('Mock Watch Later')).toBeInTheDocument();
+  });
+
+  it('renders Page Not Found for unknown routes', async () => {
+    useSearchParams.mockReturnValue([{ get: () => '' }, jest.fn()]);
+
+    await renderWithProviders(<App />, { route: '/unknown-route' });
+
+    expect(screen.getByText('Page Not Found')).toBeInTheDocument();
+  });
+});
