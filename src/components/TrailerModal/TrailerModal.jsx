@@ -22,7 +22,11 @@ const TrailerModal = () => {
   };
 
   return (
-    <div className="modal-background" onClick={onClose}>
+    <div
+      data-testid="modal-background"
+      className="modal-background"
+      onClick={onClose}
+    >
       <div className="modal-foreground" onClick={(e) => e.stopPropagation()}>
         <button className="modal-close" onClick={onClose}>
           X
